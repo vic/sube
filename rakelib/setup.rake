@@ -35,13 +35,11 @@ module Sube::Rake::Setup
     uri = URI.parse(uri.to_s)
     path = path.to_s
     mkpath File.dirname(path)
-    data = ''
     print "Downloading #{uri} to #{path} ..."
     Net::HTTP::get_response(uri) do |res|
-      data = res.read_body
+      File.open(path.to_s, 'wb') { |f| f.write res.read_body }
     end
     puts
-    File.open(path.to_s, 'wb') { |f| f.write data }
   end
 
   def unzip(file, path)
