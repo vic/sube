@@ -45,7 +45,7 @@ Gem::Specification.new do |spec|
                            '--line-numbers' << '--inline-source' << '-p' <<
                            '--webcvs' << 'http://github/vic/sube/tree/master/'
 
-  spec.add_dependency 'sinatra'
+  spec.add_dependency 'sinatra', :git_uri => 'git://github.com/bmizerany/sinatra.git'
   spec.add_dependency 'builder'
   spec.add_dependency 'haml'
   spec.add_dependency 'RedCloth'

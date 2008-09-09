@@ -3,9 +3,11 @@
 root = File.expand_path('..', File.dirname(__FILE__))
 
 $:.unshift File.join(root, 'lib')
-Dir.glob(File.join(root, "vendor/*/lib")) { |i| $:.unshift i }
+Dir.glob(File.join(root, "vendor/modules/*/lib")) { |i| $:.unshift i }
 
 require 'rubygems'
+Gem.path.unshift File.join(root, 'vendor/gems')
+
 require 'sinatra'
 
 Sinatra::Application.default_options.merge!({
