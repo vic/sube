@@ -1,0 +1,169 @@
+Sube.app = {
+  win_count: 0,
+
+  newSubtitle: function() {
+    var sub = new Sube.Sub({ id : 'subtitleWin'+(Sube.app.win_count++) });
+    var winEl = Ext.getBody().createChild({tag: 'div'});
+
+    var editorOpts = {
+      listeners: {
+        'render': function(comp) {
+          sub.addEditorHotKeys(comp);
+        }
+      }
+    };
+
+    var dateEditorOpts = Ext.apply({
+      hideTrigger: true,
+      allowBlank: false,
+      format: 'H:i:s:u',
+      altFormats: 'H:i:s:u'
+      }, editorOpts);
+
+    var timeRenderer = function(date) {
+      var format = 'i:s';
+      if (date.getHours() > 0) {
+        format = 'H:'+format;
+      }
+      if (date.getMilliseconds() > 0) {
+        format += ':u';
+      }
+      return date.format(format);
+    };
+
+    var textEditorOpts = Ext.apply({
+
+    }, editorOpts);
+
+    sub.win = new Ext.Window(
+      {
+        sub: sub,
+        id: sub.id,
+        title: 'New Subtitle',
+        layout : 'fit',
+        height: 500,
+        width: 500,
+        border: false,
+        items: [
+          new Ext.Panel(
+            {
+              layout: 'border',
+              border: false,
+              items: [
+                sub.video = new Ext.Panel(
+                  {
+                    title: 'Preview',
+                    region: 'north',
+                    collapsible: true,
+                    collapsed: false,
+                    collapseMode: 'mini',
+                    hidden: true,
+                    autoHeight: true,
+                    autoWidth: true,
+                    align: 'center',
+                    html: ''
+                }),
+                sub.grid = new Ext.grid.EditorGridPanel(
+                  {
+                    region: 'center',
+                    autoHeight: false,
+                    scrollable: true,
+                    clicksToEdit: 1,
+                    autoExpandColumn: 2,
+                    collapsible: true,
+                    enableColumnHide: false,
+                    enableColumnMove: false,
+                    enableColumnResize: false,
+                    enableHdMenu: false,
+                    listeners: {
+                      'beforeedit': function(obj) {
+                        sub.grid.getSelectionModel().selectRow(obj.row);
+                      }
+                    },
+                    store: new Ext.data.JsonStore(
+                      {
+                        fields: [
+                          { name: 'from' },
+                          { name: 'to' },
+                          { name: 'text' }
+                        ]
+                      }),
+                    cm: new Ext.grid.ColumnModel(
+                      [
+                        { header: 'From (<small>h:m:s:u</small>)',
+                          dataIndex: 'from', width: 73, resizable: false, align: 'center',
+                          editor: new Ext.form.DateField(Ext.apply({dataIndex:'from'}, dateEditorOpts)),
+                          renderer: timeRenderer
+                        },
+                        { header: 'To (<small>h:m:s:u</small>)',
+                          dataIndex: 'to', width: 73, resizable: false, align: 'center',
+                          editor: new Ext.form.DateField(Ext.apply({dataIndex:'to'}, dateEditorOpts)),
+                          renderer: timeRenderer
+                        },
+                        { header: 'Caption Text', dataIndex: 'text', width: '80%',
+                          editor: new Ext.form.TextArea(Ext.apply({dataIndex:'text'}, textEditorOpts))
+                        }
+                      ]),
+                    selModel: new Ext.grid.RowSelectionModel(),
+                    data: [],
+                    tbar: [
+                      {text: 'New', handler: sub.newCaption.createDelegate(sub, ['last'])},
+                      "|",
+                      {text: 'Delete', handler: sub.delCaption.createDelegate(sub, [])},
+                      "->",
+                      {text: 'Preview', handler: sub.preview, scope: sub},
+                      "|",
+                      {text: 'Save', handler: sub.saveGist, scope:sub }
+                    ]
+                  }
+                ),
+                new Ext.Panel(
+                  {
+                    region: 'south',
+                    collapsible: false,
+                    collapsed: false,
+                    collapseMode: 'mini',
+                    hidden: false,
+                    autoHeight: true,
+                    autoWidth: true,
+                    html: ''
+                })
+              ]
+            })
+        ]
+      });
+
+    sub.win.show();
+    sub.addEditorHotKeys(sub.win);
+
+  },
+
+  openSubtitle: function() {
+    var winEl = Ext.getBody().createChild({tag: 'div', id: 'openSubtitle'});
+    var win = new Ext.Window(
+      {
+        layout      : 'fit',
+        applyTo     : winEl,
+        width       : 500,
+        height      : 300,
+        items       : new Ext.TabPanel(
+          {
+            autoTabs       : true,
+            activeTab      : 0,
+            deferredRender : false,
+            border         : false
+          }),
+        buttons     :[
+          {
+            text     : 'Submit',
+            disabled : true
+          },{
+            text     : 'Close',
+            handler  : function(){
+              win.hide();
+            }
+          }]
+      });
+    win.show();
+  }
+};

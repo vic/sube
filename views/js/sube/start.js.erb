@@ -1,0 +1,104 @@
+// -*- js2 -*-
+Ext.onReady(
+  function() {
+
+    Ext.QuickTips.init();
+
+    var mainPanel = new Ext.Panel({
+      region: 'center',
+      contentEl: 'main'
+    });
+
+    var treePanel = new Ext.tree.TreePanel({
+      title: 'Navigation',
+      iconCls:'nav',
+      border: false,
+      split: true,
+      height: 300,
+      minSize: 150,
+      autoScroll: true,
+
+      rootVisible: false,
+      lines: false,
+      singleExpand: true,
+      useArrows: true,
+
+      loader: new Ext.tree.TreeLoader({
+        dataUrl: Sube.path_to('/js/sube/navigation_data.json')
+      }),
+      root: new Ext.tree.AsyncTreeNode()
+    });
+
+    // Assign the changeLayout function to be called on tree node click.
+    treePanel.on('click', function(n){
+    	var sn = this.selModel.selNode || {}; // selNode is null on initial selection
+    	if(n.leaf && n.id != sn.id){  // ignore clicks on folders and currently selected node
+           mainPanel.body.load({
+             url: Sube.path_to('/doc/'+n.id+'.html'),
+             method: 'get',
+             scripts: true
+           });
+     	}
+    });
+
+    new Ext.Viewport(
+      {
+        layout: 'border',
+        items: [ new Ext.Panel(
+          {
+            title: '<center><h1><%= Sube::APP_TITLE %></h1></center>',
+            region: 'north',
+            contentEl: 'north',
+            collapsible: true,
+            autoScroll: true,
+            collapseMode: 'mini',
+            collapsed: true,
+            margins: '0 0 0 0',
+            border: false,
+            height: 100,
+            minHeight: 20,
+            maxHeight: 100
+          }),
+          {
+            region:'west',
+            title:'<span style="float:right;">Subtitle Editor</span><span>Sub<sub>E</sub></span>',
+            split:true,
+            width: 200,
+            minSize: 175,
+            maxSize: 400,
+            collapsible: true,
+            margins:'0 0 0 5',
+            layout:'accordion',
+            layoutConfig:{
+              animate:true
+            },
+            items: [
+              treePanel,
+              {
+                title:'Settings',
+                html:'<p>Some settings in here.</p>',
+                border:false,
+                iconCls:'settings'
+              }],
+            tbar: [
+                {
+                  text: 'New',
+                  handler: Sube.app.newSubtitle
+                },
+                '|',
+                { text: 'Open',
+                  handler: Sube.app.openSubtitle
+                },
+                '->',
+                {
+                  text: 'Clear Log',
+                  handler: function() {
+                    Ext.get('log').update('');
+                  }
+                }
+            ]
+          },
+          mainPanel
+        ]
+      });
+  });

@@ -1,0 +1,23 @@
+/* -*- js2 -*- */
+(function() {
+
+  var win = Ext.getCmp('<%= params["winId"] %>');
+  var sub = win.sub;
+  sub.captionsURI = '<%= params["captionsURI"] %>';
+  sub.whenPlayerReady(function() { sub.play.createDelegate(sub).defer(100, sub); });
+  sub.loadPlayer();
+
+  /*
+  if (sub.player == null) {
+    sub.whenPlayerReady(sub.play.createDelegate(sub));
+    sub.loadPlayer();
+  } else {
+    sub.showVideoArea();
+    (function() {
+       sub.loadCaptions();
+       sub.play();
+     }).defer(500, sub);
+  }
+*/
+   
+ })();

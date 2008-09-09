@@ -1,0 +1,34 @@
+/* -*- js2 -*- */
+
+//////////////////////
+Ext.namespace('Sube');
+Ext.apply(Sube, {
+
+  path_to : function(path) {
+    return '<%= path_to("") %>'+path;
+  },
+
+  log : function(msg, type) {
+    type = "info";
+    var entry = Ext.get("log").createChild({tag: 'div'});
+    entry.addClass(type);
+    entry.update(msg.replace(/(https?:\/\/\S+)/g, '<a href="$1">$1</a>'));
+    entry.slideIn('t', { duration: .5 });
+  },
+
+  Sub : function(config) {
+    Ext.apply(this, config);
+  }
+});
+
+//////////////////////
+// for JWPlayer
+function playerReady(obj) {
+  var winId = obj.id.replace(/_player$/, '');
+  var win = Ext.getCmp(winId);
+  var sub = win.sub;
+  sub.playerReady.defer(100, sub);
+}
+
+// <%= "Sube Object \n" + erb(:'/js/sube/object.js') %>
+// <%= "Sube App    \n" + erb(:'/js/sube/app.js') %>

@@ -1,0 +1,32 @@
+SubE - An online Subtitle Editor.
+
+Sube is an Ajax based subtitle editor, using ExtJS to create the client side user interface.
+
+== Requirements
+  - Sinatra
+  - Hpricot
+  - Json
+  - RedCloth
+  - Builder
+  - Mygist
+
+== Hacking
+  
+  rake setup dev=git
+
+== Current Features
+  - Stream video using JWPlayer.
+  - Save captions as W3 Timed Text standard.
+  - Use Gist to save captions.
+  - Video preview
+  - Keyboard shortcuts!
+  - Use keepvid.com to obtain a video URL.
+
+== Things to come
+  - Use Github authentication and reuse gist.
+  - Open an existing caption. (from Gist)
+  - Multiple language.
+  - Play single caption
+  - Subtitle re-ordering
+  - Export to other caption formats.
+

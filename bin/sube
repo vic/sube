@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+root = File.expand_path('..', File.dirname(__FILE__))
+
+$:.unshift File.join(root, 'lib')
+Dir.glob(File.join(root, "vendor/*/lib")) { |i| $:.unshift i }
+
+require 'rubygems'
+require 'sinatra'
+
+Sinatra::Application.default_options.merge!({
+  :root => root, 
+  :public => root + '/public',
+  :views => root + '/views',
+  :app_file => File.join(root, 'lib/sube.rb'),
+  :sessions => true
+})
+
+Kernel.load Sinatra.application.options.app_file

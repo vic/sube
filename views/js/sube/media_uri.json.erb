@@ -1,0 +1,4 @@
+<% uri = Sube::Http.media_uri(params['uri'].to_s)
+puts params['uri'].to_s+"   ---->  "+uri.to_s
+%>
+<%= uri ? uri.to_s.inspect : 'undefined' %>

@@ -1,0 +1,359 @@
+/* -*- js2 -*- */
+Ext.apply(Sube.Sub.prototype,
+{
+
+  setVideo: function(callback) {
+    Ext.Msg.prompt('Video', 'Please enter the URI to the video file:', function(btn, uri){
+                     if (btn == "ok" && uri != "") {
+                       var videoURI = undefined;
+                       Ext.Ajax.request({
+                         url: Sube.path_to('/js/sube/media_uri.json'),
+                         params: {
+                           uri : uri
+                         },
+                         success : function(response) {
+                           videoURI = Ext.decode(response.responseText);
+                         },
+                         async : false
+                       });
+                       this.videoURI = videoURI;
+                       if (typeof(callback) == "function") { callback(uri); }
+                     }
+                     if (this.videoURI == null) {
+                       Ext.Msg.alert('Alert', "You must provide a valid media URI");
+                     }
+    }, this);
+  },
+
+  preview: function() {
+    if (this.videoURI == null) {
+      this.setVideo(this.preview.createDelegate(this));
+      return;
+    }
+    this.savePreview();
+  },
+
+  savePreview: function() {
+    this.grid.mask = new Ext.LoadMask(this.grid.getEl(), {msg: "Saving captions.."});
+    this.grid.mask.show();
+    var records = [];
+    this.grid.getStore().each(function(record) {
+      records[records.length] = {
+        from: record.get("from").format('h:i:s:u'),
+        to: record.get("to").format('h:i:s:u'),
+        text: record.get("text")
+      };
+      return true;
+    });
+    Ext.Ajax.request(
+      { async : false,
+        method : 'post',
+        url : Sube.path_to('/preview/'+this.id),
+        success : function(response) {
+          Ext.decode("function() { "+response.responseText+" }")();
+        },
+        params: {
+          videoURI: this.videoURI,
+          records: Ext.util.JSON.encode(records)
+        }
+      });
+  },
+
+  saveGist: function() {
+    this.grid.mask = new Ext.LoadMask(this.grid.getEl(), {msg: "Saving captions.."});
+    this.grid.mask.show();
+    var el = Ext.getBody().createChild({tag: 'div'});
+    var records = [];
+    this.grid.getStore().each(function(record) {
+      records[records.length] = {
+        from: record.get("from").format('H:m:i:s:u'),
+        to: record.get("to").format('H:m:i:s:u'),
+        text: record.get("text")
+      };
+      return true;
+    });
+    el.load(
+      {
+       url: Sube.path_to('/save/gist/anon'),
+       method: 'post',
+       scripts: true,
+       params: {
+         videoURI: this.videoURI,
+         winId: this.id,
+         records: Ext.util.JSON.encode(records)
+       }
+    });
+  },
+
+  loadPlayer: function() {
+    this.grid.mask.hide();
+
+    var embed_id = this.id + '_player';
+    var width = this.win.width - 20;
+    var height = 250;
+
+//    this.videoURI = "http://localhost:4567/media/tail9.flv";
+//    this.captionsURI = "http://localhost:4567/media/tail9.xml";
+
+    Sube.log("Loading player for video: "+this.videoURI);
+
+    var player = new SWFObject(Sube.path_to('/jwplayer/player.swf'),embed_id,width,height,'7');
+    player.addParam("wmode","transparent");
+    player.addParam("allowfullscreen","true");
+    player.addParam("allowscriptaccess", "always");
+    player.addVariable('fullscreen','true');
+    player.addVariable("autostart","false");
+    player.addVariable("usecaptions","true");
+    player.addVariable("channel", "0");
+    player.addVariable("width", width);
+    player.addVariable("height",height);
+    player.addVariable("javascriptid", embed_id);
+    player.addVariable("id", embed_id);
+    player.addVariable("file", Ext.util.Format.htmlEncode(this.videoURI));
+    player.addVariable("captions", Ext.util.Format.htmlEncode(this.captionsURI));
+
+    player.write(this.video.body.id);
+    var embed = Ext.get(embed_id);
+    this.showVideoArea();
+  },
+
+  showVideoArea: function() {
+    this.video.show();
+    this.video.expand();
+    this.grid.mask.hide();
+    this.win.render();
+  },
+
+  loadCaptions: function() {
+
+  },
+
+  play: function() {
+    this.player.sendEvent('PLAY', 'true');
+  },
+
+  whenPlayerReady: function(callback) {
+    this.playerReady = this.playerReadyCallback.createSequence(callback == null ? Ext.emptyFn : callback, this);
+  },
+
+  playerReadyCallback: function() {
+    this.player = document.getElementById(this.id+'_player');
+    this.playerReady = this.playerReadyCallback;
+  },
+
+  moveToCaption: function(position) {
+    var sm = this.grid.getSelectionModel();
+    this.grid.stopEditing();
+    if (position == 'first') {
+      sm.selectFirstRow();
+    } else if (position == 'last') {
+      sm.selectLastRow();
+    } else if (position == 'next') {
+      sm.selectNext(false);
+    } else if (position == 'previous') {
+      sm.selectPrevious(false);
+    } else {
+      return; // TODO implement it should be an row idx.
+    }
+
+    var idx = this.grid.getStore().indexOf(sm.getSelected());
+    idx  = idx > 0 ? idx : 0;
+    this.grid.startEditing(idx, 2);
+  },
+
+  delCaption: function(position) {
+    var store = this.grid.getStore();
+    var sm = this.grid.getSelectionModel();
+    if (position == null) {
+      store.remove(sm.getSelected());
+    } else if (typeof position == 'number') {
+      store.remove(store.getAt(position));
+    }
+  },
+
+  newCaption: function(position) {
+    var store = this.grid.getStore();
+    var sm = this.grid.getSelectionModel();
+    var from = Date.parseDate('00:00:00:00', 'h:i:s:u');
+    var pos = store.getCount();
+    var to = undefined;
+
+    this.grid.stopEditing();
+
+    if (position == 'previous' ) {
+      if (sm.hasPrevious()) {
+        var idx = store.indexOf(sm.getSelected());
+        from = store.getAt(idx - 1).get('to').clone();
+        to = store.getAt(idx).get('from').clone();
+        pos = idx;
+      } else {
+        position = 'first';
+      }
+    }
+
+    if (position == 'next') {
+      if (sm.hasNext()) {
+        var idx = store.indexOf(sm.getSelected());
+        from = store.getAt(idx).get('to').clone();
+        to = store.getAt(idx + 1).get('from').clone();
+        pos = idx + 1;
+      } else {
+        position = 'last';
+      }
+    }
+
+    if (position == 'first' && store.getCount() > 0) {
+      var first = store.getAt(0);
+      var first_from = first.get('from');
+      to = first_from.clone();
+      pos = 0;
+    }
+
+    if (position == 'last' && store.getCount() > 0) {
+      var last = store.getAt(store.getCount() - 1);
+      var last_to = last.get('to');
+      from = last_to.clone();
+    }
+
+    if (to == undefined) { to = from.add(Date.SECOND, 2); }
+
+    var record = new Ext.data.Record({ from: from, to: to, text:'Hola' });
+    store.insert(pos, [record]);
+
+    sm.selectRow(pos);
+    this.grid.startEditing(pos, 2);
+  },
+
+  changeTime: function(fieldName, timeField, increment) {
+    var store = this.grid.getStore();
+    var sm = this.grid.getSelectionModel();
+    var selectedRow = sm.getSelected();
+    var date = selectedRow.get(fieldName);
+    var idx = store.indexOf(selectedRow);
+    this.grid.stopEditing();
+    selectedRow.set(fieldName, date.add(timeField, increment));
+  },
+
+  addEditorHotKeys : function(comp) {
+    var el = comp.el;
+    var sub = null;
+    var keys = [
+
+      // Time editing keys
+      {
+        key: 'b',
+        ctrl: true,
+        shift: true,
+        fn: this.changeTime.createDelegate(this,['from', Date.MINUTE, +1]),
+        stopEvent: true
+      },
+      {
+        key: 'v',
+        ctrl: true,
+        shift: true,
+        fn: this.changeTime.createDelegate(this,['from', Date.MINUTE, -1]),
+        stopEvent: true
+      },
+      {
+        key: 'b',
+        ctrl: true,
+        fn: this.changeTime.createDelegate(this,['from', Date.SECOND, +1]),
+        stopEvent: true
+      },
+      {
+        key: 'v',
+        ctrl: true,
+        fn: this.changeTime.createDelegate(this,['from', Date.SECOND, -1]),
+        stopEvent: true
+      },
+      {
+        key: 'b',
+        alt: true,
+        shift: true,
+        fn: this.changeTime.createDelegate(this,['to', Date.MINUTE, +1]),
+        stopEvent: true
+      },
+      {
+        key: 'v',
+        alt: true,
+        shift: true,
+        fn: this.changeTime.createDelegate(this,['to', Date.MINUTE, -1]),
+        stopEvent: true
+      },
+      {
+        key: 'b',
+        alt: true,
+        fn: this.changeTime.createDelegate(this,['to', Date.SECOND, +1]),
+        stopEvent: true
+      },
+      {
+        key: 'v',
+        alt: true,
+        fn: this.changeTime.createDelegate(this,['to', Date.SECOND, -1]),
+        stopEvent: true
+      },
+
+
+
+      // Add Caption keys
+      {
+        key: "j", // new caption after current
+        shift: true,
+        ctrl: true,
+        fn: this.newCaption.createDelegate(this, ['next']),
+        stopEvent: true
+      },
+      {
+        key: 'k', // new caption before current
+        shift: true,
+        ctrl: true,
+        fn: this.newCaption.createDelegate(this, ['previous']),
+        stopEvent: true
+      },
+      {
+        key: 'h', // new caption at start
+        shift: true,
+        ctrl: true,
+        fn: this.newCaption.createDelegate(this, ['first']),
+        stopEvent: true
+      },
+      {
+        key: 'l', // new caption at end
+        shift: true,
+        ctrl: true,
+        fn: this.newCaption.createDelegate(this, ['last']),
+        stopEvent: true
+      },
+
+      // Movement keys
+      {
+        key: "j\r\n", // move to next caption
+        ctrl: true,
+        fn: this.moveToCaption.createDelegate(this, ['next']),
+        stopEvent: true
+      },
+      {
+        key: 'k', // move to previous caption
+        ctrl:  true,
+        fn: this.moveToCaption.createDelegate(this, ['previous']),
+        stopEvent: true
+      },
+      {
+        key: 'h', // move to first caption
+        ctrl:  true,
+        fn: this.moveToCaption.createDelegate(this, ['first']),
+        stopEvent: true
+      },
+      {
+        key: 'l', // move to last caption
+        ctrl:  true,
+        fn: this.moveToCaption.createDelegate(this, ['last']),
+        stopEvent: true
+      }
+
+    ];
+    new Ext.KeyMap(el, keys);
+  }
+
+});
+
