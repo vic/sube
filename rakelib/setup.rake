@@ -8,9 +8,14 @@ module Sube::Rake::Setup
   extend Sube::Rake
   extend self
 
-  def install_gem(dep)
-    ENV['GEM_HOME'] = gem_home = _('vendor/gems')
+  attr_accessor :gem_home
+
+  def gem_config
+    ENV['GEM_HOME'] = @gem_home = _('vendor/gems')
     Gem.use_paths(gem_home, [gem_home, Gem.path])
+  end
+
+  def install_gem(dep)
     gem_repo = dep.gem_repo if dep.respond_to?(:gem_repo)
     if gem_repo && !Gem.sources.include?(gem_repo)
       puts "Adding Gem source: #{gem_repo}"
@@ -20,15 +25,19 @@ module Sube::Rake::Setup
       Gem::SourceInfoCache.cache.update
       Gem::SourceInfoCache.cache.flush
       Gem.sources << gem_repo
-      Gem.configuration.write
+      #Gem.configuration.write
     end
     gems = Gem::SourceIndex.from_installed_gems
-    installer_opts = {}
+    installer_opts = {:ignore_dependencies => false}
     installer_opts.update({ :install_dir => gem_home })
     if gems.search(dep.name, dep.version_requirements).empty?
       puts "Installing dependency: #{dep} on #{gem_home}"
       require 'rubygems/dependency_installer'
-      Gem::DependencyInstaller.new(installer_opts).install(dep) rescue puts "Failed to install #{dep}"
+      begin
+        Gem::DependencyInstaller.new(installer_opts).install(dep.name, dep.version_requirements)
+      rescue Gem::GemNotFoundException => e
+        puts e
+      end
     end
   end
 
@@ -63,23 +72,43 @@ module Sube::Rake::Setup
     end
   end
 
+  def git_clone(dep)
+    mkpath _('vendor/modules')
+    local_copy = "vendor/modules/#{dep.name}"
+    begin
+      sh "git clone #{dep.git_uri} #{local_copy}"
+      local_copy
+    rescue => e
+      puts e
+    end
+  end
+
   namespace :setup do
-    
-    task :install_gems do
-      missing = Sube::Gem::SPEC.dependencies.select do |dep| 
-        !(ENV['dev'] && dep.respond_to?(:git_uri))  ||
-          Gem::SourceIndex.from_installed_gems.search(dep).empty?
-      end
-      missing.each do |dep| 
-        if ENV['dev'] && dep.respond_to?(:git_uri)
-          mkpath _('vendor')
-          local_copy = "vendor/modules/#{dep.name}"
-          sh 'git submodule init'
-          sh "git submodule add #{dep.git_uri} #{local_copy}" rescue nil
-          sh 'git submodule update'
-        else
-          install_gem dep
-        end
+
+    desc "Clone other git projects on vendor/modules"
+    task :git_clone, :only do |t, args|
+      only = %r[#{args[:only]}] if args[:only]
+      gits = Sube::Gem::SPEC.dependencies.select { |dep| dep.respond_to?(:git_uri) }
+      gits = gits.select { |dep| only === dep.name } if only
+      gits.each { |dep| git_clone(dep) }
+    end
+
+    desc "Install dependency gems"
+    task :install_gems, :only, :nogit do |t, args|
+      gem_config
+      only = %r[#{args[:only]}] if args[:only]
+      missing = Sube::Gem::SPEC.dependencies.select { |dep| Gem::SourceIndex.from_installed_gems.search(dep).empty? }
+      missing = missing.select { |dep| only === dep.name } if only
+      missing.delete_if { |dep| dep.respond_to?(:git_uri) } if args[:nogit]
+      missing.each { |dep| install_gem dep }
+    end
+
+    task :install_dependencies => :install_gems do
+      missing = Sube::Gem::SPEC.dependencies.select { |dep| Gem::SourceIndex.from_installed_gems.search(dep).empty? }
+      missing.delete_if { |dep| dep.respond_to?(:git_uri) && git_clone(dep) } if ENV['dev'] # Get source for missing gems
+      unless missing.empty?
+        puts "Missing dependencies: "
+        missing.each { |dep| puts "- #{dep}" }
       end
     end
 
@@ -111,9 +140,11 @@ module Sube::Rake::Setup
 
     task :install_jwplayer => jwplayer_dir
 
+    desc "Download and setup files from external proyects"
     task :install_vendor => [:install_extjs, :install_jwplayer]
     
-    task :install_requirements => [:install_vendor, :install_gems]
+    
+    task :install_requirements => [:install_vendor, :install_dependencies]
 
   end
 end
