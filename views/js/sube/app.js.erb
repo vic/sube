@@ -21,6 +21,14 @@ Sube.app = {
       format: 'H:i:s:u',
       altFormats: 'H:i:s:u'
       }, editorOpts);
+    Ext.apply(dateEditorOpts.listeners, {
+      'render' : dateEditorOpts.listeners['render'].createSequence(function(comp) {
+         var spinner = new Ext.ux.form.Spinner({
+           strategy: new Ext.ux.form.Spinner.TimeStrategy('H:i:s:u')
+         });
+         spinner.applyToMarkup(comp.el);
+       })
+    });
 
     var timeRenderer = function(date) {
       var format = 'i:s';
