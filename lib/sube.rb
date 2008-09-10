@@ -35,17 +35,13 @@ module Sube
     haml request.path_info.to_sym
   end
 
-  get "/*.json" do
-    erb request.path_info.to_sym
-  end
-
   post "/*.json" do
     content_type 'application/json'
     erb request.path_info.to_sym
   end
 
   get '/*.js' do
-    content_type 'text/javascript'
+    content_type 'application/x-javascript'
     erb request.path_info.to_sym
   end
 

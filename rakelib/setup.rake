@@ -9,7 +9,8 @@ module Sube::Rake::Setup
   extend self
 
   def install_gem(dep)
-    Gem.path.unshift _('vendor') unless Gem.path.include? _('vendor')
+    ENV['GEM_HOME'] = gem_home = _('vendor/gems')
+    Gem.use_paths(gem_home, [gem_home, Gem.path])
     gem_repo = dep.gem_repo if dep.respond_to?(:gem_repo)
     if gem_repo && !Gem.sources.include?(gem_repo)
       puts "Adding Gem source: #{gem_repo}"
@@ -23,11 +24,11 @@ module Sube::Rake::Setup
     end
     gems = Gem::SourceIndex.from_installed_gems
     installer_opts = {}
-    installer_opts.update({ :install_dir => _('vendor/gems') }) if ENV['dev']
+    installer_opts.update({ :install_dir => gem_home })
     if gems.search(dep.name, dep.version_requirements).empty?
-      puts "Installing dependency: #{dep}"
+      puts "Installing dependency: #{dep} on #{gem_home}"
       require 'rubygems/dependency_installer'
-      Gem::DependencyInstaller.new(installer_opts).install(dep)
+      Gem::DependencyInstaller.new(installer_opts).install(dep) rescue puts "Failed to install #{dep}"
     end
   end
 

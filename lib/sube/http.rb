@@ -11,7 +11,6 @@ module Sube
     def parse_uri(str, uri = nil)
       str = URI.escape(str.to_s.strip)
       "[]{}|".each_byte { |b| str.gsub!(b.chr, sprintf('%%%02X', b)) }
-      puts "URI: #{str.inspect}"
       new_uri = URI.parse(str)
       if new_uri.relative? && uri
         new_uri.scheme = uri.scheme

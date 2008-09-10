@@ -1,4 +1,3 @@
-#/usr/bin/env ruby
 # -*- ruby -*- 
 
 require 'rubygems'
@@ -46,6 +45,7 @@ Gem::Specification.new do |spec|
                            '--webcvs' << 'http://github/vic/sube/tree/master/'
 
   spec.add_dependency 'sinatra', :git_uri => 'git://github.com/bmizerany/sinatra.git'
+  spec.add_dependency 'json'
   spec.add_dependency 'builder'
   spec.add_dependency 'haml'
   spec.add_dependency 'RedCloth'
