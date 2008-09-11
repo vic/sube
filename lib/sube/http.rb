@@ -38,12 +38,18 @@ module Sube
     end
 
     def keep_vid(uri)
-      uri = URI.parse('http://keepvid.com/?url='+uri.to_s)
+      uri = URI.parse('http://keepvid.com/?url='+URI.escape(uri.to_s))
       response = Net::HTTP.get_response(uri)
       body = response.body
       body = Hpricot(body)
       xquery = "//div.links-c//a"
-      body.search(xquery).map { |a| parse_uri(a['href'], uri) }.find { |u| media_content?(u) }
+      body.search(xquery).each do |a|
+        href = URI.unescape(a['href'])
+        href = $' if /save-video.(flv|mp4)\?/ === href
+        href =  media_content?(parse_uri(href, uri))
+        return href if href
+      end
+      nil
     end
     
   end

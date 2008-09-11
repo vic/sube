@@ -12,23 +12,43 @@ Ext.apply(Sube, {
     type = "info";
     var entry = Ext.get("log").createChild({tag: 'div'});
     entry.addClass(type);
-    entry.update(msg.replace(/(https?:\/\/\S+)/g, '<a href="$1">$1</a>'));
+    entry.update(msg.replace(/(https?:\/\/[^\s\"\']+)/g, '<a href="$1">$1</a>'));
     entry.slideIn('t', { duration: .5 });
   },
 
   Sub : function(config) {
     Ext.apply(this, config);
+  },
+
+  jwPlayerCallback : function(callback) {
+    return function(obj) {
+      var winId = obj.id.replace(/_player$/, '');
+      var win = Ext.getCmp(winId);
+      var sub = win.sub;
+      var player = document.getElementById(obj.id);
+      callback(sub, player, obj);
+    };
   }
 });
 
 //////////////////////
 // for JWPlayer
-function playerReady(obj) {
-  var winId = obj.id.replace(/_player$/, '');
-  var win = Ext.getCmp(winId);
-  var sub = win.sub;
-  sub.playerReady.defer(100, sub);
-}
+Ext.apply(this, {
+  playerReady : Sube.jwPlayerCallback(function(sub, player, obj) {
+    sub.callbacks.playerReady.defer(100, sub, [player, obj]);
+  }),
 
+  jwPlayerPlay : Sube.jwPlayerCallback(function(sub, player, obj) {
+    Sube.log("MMMMM PLAYING? ... "+Ext.encode(msg));
+  }),
+
+  jwPlayerTrace: function(msg) {
+//    Sube.log("JWPlayer Trace: "+Ext.encode(msg));
+  }
+});
+
+
+/////////////////////
+// Other includes
 // <%= "Sube Object \n" + erb(:'/js/sube/object.js') %>
 // <%= "Sube App    \n" + erb(:'/js/sube/app.js') %>

@@ -5,7 +5,7 @@
   sub.gist = '<%= params["gist"] %>';
   win.setTitle("Subtitle [Gist "+sub.gist+"]");
   var gistURI = 'http://gist.github.com/'+sub.gist;
-  Sube.log('Saved in <a href="'+gistURI+'">'+gistURI+'</a>');
+  Sube.log('Saved in '+gistURI);
   sub.grid.mask.hide();
   var newWindow = window.open(gistURI, '_sube_gist');
   newWindow.focus();

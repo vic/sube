@@ -3,6 +3,10 @@ Ext.apply(Sube.Sub.prototype,
 {
 
   setVideo: function(callback) {
+//    this.videoURI = "http://content.bitsontherun.com/videos/3ta6fhJQ.flv"; // sample video
+//    this.captionsURI = ""; // sample subtitle
+//    return callback(this.videoURI); // for using sample video
+
     Ext.Msg.prompt('Video', 'Please enter the URI to the video file:', function(btn, uri){
                      if (btn == "ok" && uri != "") {
                        var videoURI = undefined;
@@ -30,10 +34,20 @@ Ext.apply(Sube.Sub.prototype,
       this.setVideo(this.preview.createDelegate(this));
       return;
     }
-    this.savePreview();
+    this.savePreview(this.play);
   },
 
-  savePreview: function() {
+  playPause: function() {
+    if (this.videoURI == null) {
+      this.setVideo(this.preview.createDelegate(this));
+      return;
+    }
+    this.savePreview(function() {
+
+    });
+  },
+
+  savePreview: function(callback) {
     this.grid.mask = new Ext.LoadMask(this.grid.getEl(), {msg: "Saving captions.."});
     this.grid.mask.show();
     var records = [];
@@ -49,8 +63,11 @@ Ext.apply(Sube.Sub.prototype,
       { async : false,
         method : 'post',
         url : Sube.path_to('/preview/'+this.id),
+        scope: this,
         success : function(response) {
           Ext.decode("function() { "+response.responseText+" }")();
+          if (typeof callback == 'function') { this.whenPlayerReady(callback); }
+          this.loadPlayer();
         },
         params: {
           videoURI: this.videoURI,
@@ -92,15 +109,13 @@ Ext.apply(Sube.Sub.prototype,
     var width = this.win.width - 20;
     var height = 250;
 
-//    this.videoURI = "http://localhost:4567/media/tail9.flv";
-//    this.captionsURI = "http://localhost:4567/media/tail9.xml";
-
     Sube.log("Loading player for video: "+this.videoURI);
 
-    var player = new SWFObject(Sube.path_to('/jwplayer/player.swf'),embed_id,width,height,'7');
+    var player = new SWFObject(Sube.path_to('/jwplayer/player.swf'),embed_id,width,height,'9');
     player.addParam("wmode","transparent");
     player.addParam("allowfullscreen","true");
     player.addParam("allowscriptaccess", "always");
+    player.addVariable('tracecall', 'jwPlayerTrace'); // show jwplayer events
     player.addVariable('fullscreen','true');
     player.addVariable("autostart","false");
     player.addVariable("usecaptions","true");
@@ -113,7 +128,7 @@ Ext.apply(Sube.Sub.prototype,
     player.addVariable("captions", Ext.util.Format.htmlEncode(this.captionsURI));
 
     player.write(this.video.body.id);
-    var embed = Ext.get(embed_id);
+
     this.showVideoArea();
   },
 
@@ -124,21 +139,33 @@ Ext.apply(Sube.Sub.prototype,
     this.win.render();
   },
 
-  loadCaptions: function() {
-
-  },
-
-  play: function() {
-    this.player.sendEvent('PLAY', 'true');
+  play: function(pause) {
+    if (this.player) {
+      Sube.log("SEND PLAY");
+      this.player.sendEvent('PLAY', pause || 'true');
+    }
   },
 
   whenPlayerReady: function(callback) {
-    this.playerReady = this.playerReadyCallback.createSequence(callback == null ? Ext.emptyFn : callback, this);
+    this.callbacks.playerReady = this.callbacks.jwPlayerReady.createSequence(callback, this);
   },
 
-  playerReadyCallback: function() {
-    this.player = document.getElementById(this.id+'_player');
-    this.playerReady = this.playerReadyCallback;
+  callbacks : {
+
+    jwPlayerReady : function(player, obj) {
+      if (typeof player.getConfig == 'function') {
+        this.player = player;
+        this.player.addViewListener("play", "jwPlayerPlay");
+      } else {
+        this.player = undefined; // no player
+      }
+      this.callbacks.playerReady = this.callbacks.jwPlayerReady;
+    },
+
+    jwPlayerPlay : function(player, obj) {
+      Sube.log("JWPlayer playing "+Ext.encode(obj));
+    }
+
   },
 
   moveToCaption: function(position) {
@@ -408,6 +435,14 @@ Ext.apply(Sube.Sub.prototype,
         key: 'l', // move to last caption
         ctrl:  true,
         fn: this.moveToCaption.createDelegate(this, ['last']),
+        stopEvent: true
+      },
+
+      // playback keys
+      {
+        key: 'p',
+        ctrl: true,
+        fn: this.playPause.createDelegate(this, []),
         stopEvent: true
       }
 
