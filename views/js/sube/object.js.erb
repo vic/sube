@@ -161,6 +161,36 @@ Ext.apply(Sube.Sub.prototype,
     this.grid.startEditing(idx, 2);
   },
 
+  moveCaption: function(position) {
+    this.grid.stopEditing();
+    var store = this.grid.getStore();
+    var sm = this.grid.getSelectionModel();
+    var selected = sm.getSelected();
+    var idx = store.indexOf(selected);
+    if (position == 'next' && sm.hasNext()) {
+      idx += 1;
+      var next = store.getAt(idx);
+      store.remove(selected);
+      store.remove(next);
+      store.insert(idx - 1, [selected, next]);
+    } else if (position == 'previous' && sm.hasPrevious()) {
+      idx -= 1;
+      var prev = store.getAt(idx);
+      store.remove(selected);
+      store.remove(prev);
+      store.insert(idx, [prev, selected]);
+    } else if (position == 'first' && store.getCount() > 2) {
+      idx = 0;
+      store.remove(selected);
+      store.insert(idx, [selected]);
+    } else if (position == 'last' && store.getCount() > 2) {
+      store.remove(selected);
+      idx = store.getCount();
+      store.insert(idx, [selected]);
+    }
+    this.grid.startEditing(idx, 2);
+  },
+
   delCaption: function(position) {
     var store = this.grid.getStore();
     var sm = this.grid.getSelectionModel();
@@ -293,37 +323,67 @@ Ext.apply(Sube.Sub.prototype,
         stopEvent: true
       },
 
-
-
       // Add Caption keys
       {
-        key: "j", // new caption after current
-        shift: true,
+        key: "j\n\r", // new caption after current
+        alt: true,
         ctrl: true,
         fn: this.newCaption.createDelegate(this, ['next']),
         stopEvent: true
       },
       {
         key: 'k', // new caption before current
-        shift: true,
+        alt: true,
         ctrl: true,
         fn: this.newCaption.createDelegate(this, ['previous']),
         stopEvent: true
       },
       {
         key: 'h', // new caption at start
-        shift: true,
+        alt: true,
         ctrl: true,
         fn: this.newCaption.createDelegate(this, ['first']),
         stopEvent: true
       },
       {
         key: 'l', // new caption at end
-        shift: true,
+        alt: true,
         ctrl: true,
         fn: this.newCaption.createDelegate(this, ['last']),
         stopEvent: true
       },
+
+
+      // Move Caption keys
+      {
+        key: "j", // move caption down
+        shift: true,
+        ctrl: true,
+        fn: this.moveCaption.createDelegate(this, ['next']),
+        stopEvent: true
+      },
+      {
+        key: 'k', // move caption up
+        shift: true,
+        ctrl: true,
+        fn: this.moveCaption.createDelegate(this, ['previous']),
+        stopEvent: true
+      },
+      {
+        key: 'h', // move caption at start
+        shift: true,
+        ctrl: true,
+        fn: this.moveCaption.createDelegate(this, ['first']),
+        stopEvent: true
+      },
+      {
+        key: 'l', // move caption at end
+        shift: true,
+        ctrl: true,
+        fn: this.moveCaption.createDelegate(this, ['last']),
+        stopEvent: true
+      },
+
 
       // Movement keys
       {
