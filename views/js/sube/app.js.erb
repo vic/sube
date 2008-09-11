@@ -22,7 +22,7 @@ Sube.app = {
       altFormats: 'H:i:s:u'
       }, editorOpts);
 
-
+/*
     dateEditorOpts.listeners = Ext.apply({}, {
       'render' : dateEditorOpts.listeners['render'].createSequence(function(comp) {
          var spinner = new Ext.ux.form.Spinner({
@@ -37,7 +37,7 @@ Sube.app = {
          spinner.applyToMarkup(comp.el);
        })
     }, dateEditorOpts.listeners);
-
+*/
 
     var timeRenderer = function(date) {
       var format = 'i:s';
@@ -110,12 +110,12 @@ Sube.app = {
                     cm: new Ext.grid.ColumnModel(
                       [
                         { header: 'From (<small>h:m:s:u</small>)',
-                          dataIndex: 'from', width: 173, resizable: false, align: 'center',
+                          dataIndex: 'from', width: 73, resizable: false, align: 'center',
                           editor: new Ext.form.DateField(Ext.apply({dataIndex:'from'}, dateEditorOpts)),
                           renderer: timeRenderer
                         },
                         { header: 'To (<small>h:m:s:u</small>)',
-                          dataIndex: 'to', width: 173, resizable: false, align: 'center',
+                          dataIndex: 'to', width: 73, resizable: false, align: 'center',
                           editor: new Ext.form.DateField(Ext.apply({dataIndex:'to'}, dateEditorOpts)),
                           renderer: timeRenderer
                         },
