@@ -1,13 +1,13 @@
 /**
  * Copyright (c) 2008, Steven Chim
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
  *     * The names of its contributors may not be used to endorse or promote products derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -25,7 +25,7 @@ Ext.extend(Ext.ux.form.Spinner.Strategy, Ext.util.Observable, {
 	incrementValue : 1,
 	alternateIncrementValue : 5,
 	validationTask : new Ext.util.DelayedTask(),
-	
+
 	onSpinUp : function(field){
 		this.spin(field, false, false);
 	},
@@ -43,7 +43,7 @@ Ext.extend(Ext.ux.form.Spinner.Strategy, Ext.util.Observable, {
 	},
 
 	spin : function(field, down, alternate){
-		this.validationTask.delay(500, function(){field.validate()});
+                this.validationTask.delay(500, function(){ if(field != undefined) { field.validate(); } });
 		//extend
 	},
 
@@ -51,7 +51,7 @@ Ext.extend(Ext.ux.form.Spinner.Strategy, Ext.util.Observable, {
 		return value;
 		//overwrite
 	}
-	
+
 });
 
 /***
@@ -65,7 +65,7 @@ Ext.extend(Ext.ux.form.Spinner.NumberStrategy, Ext.ux.form.Spinner.Strategy, {
 
     allowDecimals : true,
     decimalPrecision : 2,
-    
+
 	spin : function(field, down, alternate){
 		Ext.ux.form.Spinner.NumberStrategy.superclass.spin.call(this, field, down, alternate);
 
@@ -90,7 +90,7 @@ Ext.extend(Ext.ux.form.Spinner.NumberStrategy, Ext.ux.form.Spinner.Strategy, {
 
 		return this.fixPrecision(v);
 	},
-	
+
     // private
     fixPrecision : function(value){
         var nan = isNaN(value);
@@ -121,7 +121,7 @@ Ext.extend(Ext.ux.form.Spinner.DateStrategy, Ext.ux.form.Spinner.Strategy, {
 		Ext.ux.form.Spinner.DateStrategy.superclass.spin.call(this);
 
 		var v = field.getRawValue();
-		
+
 		v = Date.parseDate(v, this.format);
 		var dir = (down == true) ? -1 : 1 ;
 		var incr = (alternate == true) ? this.alternateIncrementValue : this.incrementValue;
@@ -136,7 +136,7 @@ Ext.extend(Ext.ux.form.Spinner.DateStrategy, Ext.ux.form.Spinner.Strategy, {
 		v = this.fixBoundries(v);
 		field.setRawValue(Ext.util.Format.date(v,this.format));
 	},
-	
+
 	//private
 	fixBoundries : function(date){
 		var dt = date;

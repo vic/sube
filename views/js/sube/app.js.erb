@@ -22,14 +22,22 @@ Sube.app = {
       altFormats: 'H:i:s:u'
       }, editorOpts);
 
+
     dateEditorOpts.listeners = Ext.apply({}, {
       'render' : dateEditorOpts.listeners['render'].createSequence(function(comp) {
          var spinner = new Ext.ux.form.Spinner({
-           strategy: new Ext.ux.form.Spinner.TimeStrategy('H:i:s:u')
+           strategy: new Ext.ux.form.Spinner.TimeStrategy({
+             format: 'H:i:s:u',
+             incrementValue: 1,
+             incrementConstanct : Date.SECOND,
+             alternateIncrementValue :1,
+             alternateIncrementConstant: Date.MINUTE
+           })
          });
          spinner.applyToMarkup(comp.el);
        })
     }, dateEditorOpts.listeners);
+
 
     var timeRenderer = function(date) {
       var format = 'i:s';
