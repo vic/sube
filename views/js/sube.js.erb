@@ -18,35 +18,16 @@ Ext.apply(Sube, {
 
   Sub : function(config) {
     Ext.apply(this, config);
-  },
-
-  jwPlayerCallback : function(callback) {
-    return function(obj) {
-      var winId = obj.id.replace(/_player$/, '');
-      var win = Ext.getCmp(winId);
-      var sub = win.sub;
-      var player = document.getElementById(obj.id);
-      callback(sub, player, obj);
-    };
   }
+
 });
+
 
 //////////////////////
 // for JWPlayer
-Ext.apply(this, {
-  playerReady : Sube.jwPlayerCallback(function(sub, player, obj) {
-    sub.callbacks.playerReady.defer(100, sub, [player, obj]);
-  }),
-
-  jwPlayerPlay : Sube.jwPlayerCallback(function(sub, player, obj) {
-    Sube.log("MMMMM PLAYING? ... "+Ext.encode(msg));
-  }),
-
-  jwPlayerTrace: function(msg) {
-//    Sube.log("JWPlayer Trace: "+Ext.encode(msg));
-  }
-});
-
+function playerReady(obj) {
+  Sube.Sub.forPlayer(obj.id).jwPlayerReady(obj);
+}
 
 /////////////////////
 // Other includes

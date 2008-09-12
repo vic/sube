@@ -1,14 +1,22 @@
 /* -*- js2 -*- */
+Ext.apply(Sube.Sub, {
+  forPlayer : function(id) {
+    var winId = id.replace(/_player$/, '');
+    var win = Ext.getCmp(winId);
+    return win.sub;
+  }
+});
+
 Ext.apply(Sube.Sub.prototype,
 {
 
   setVideo: function(callback) {
-//    this.videoURI = "http://content.bitsontherun.com/videos/3ta6fhJQ.flv"; // sample video
-//    this.captionsURI = ""; // sample subtitle
+//    this.videoURI = 'http://content.bitsontherun.com/videos/3ta6fhJQ.flv'; // sample video
+//    this.captionsURI = ''; // sample subtitle
 //    return callback(this.videoURI); // for using sample video
 
     Ext.Msg.prompt('Video', 'Please enter the URI to the video file:', function(btn, uri){
-                     if (btn == "ok" && uri != "") {
+                     if (btn == 'ok' && uri != '') {
                        var videoURI = undefined;
                        Ext.Ajax.request({
                          url: Sube.path_to('/js/sube/media_uri.json'),
@@ -21,10 +29,10 @@ Ext.apply(Sube.Sub.prototype,
                          async : false
                        });
                        this.videoURI = videoURI;
-                       if (typeof(callback) == "function") { callback(uri); }
+                       if (typeof(callback) == 'function') { callback(uri); }
                      }
                      if (this.videoURI == null) {
-                       Ext.Msg.alert('Alert', "You must provide a valid media URI");
+                       Ext.Msg.alert('Alert', 'You must provide a valid media URI');
                      }
     }, this);
   },
@@ -34,28 +42,24 @@ Ext.apply(Sube.Sub.prototype,
       this.setVideo(this.preview.createDelegate(this));
       return;
     }
-    this.savePreview(this.play);
+    this.savePreview(function() { this.playPause(true).defer(100); });
   },
 
-  playPause: function() {
-    if (this.videoURI == null) {
-      this.setVideo(this.preview.createDelegate(this));
-      return;
+  playPause: function(play) {
+    if (this.player) {
+      this.player.sendEvent('PLAY', (play || !!!this.player.playing));
     }
-    this.savePreview(function() {
-
-    });
   },
 
   savePreview: function(callback) {
-    this.grid.mask = new Ext.LoadMask(this.grid.getEl(), {msg: "Saving captions.."});
+    this.grid.mask = new Ext.LoadMask(this.grid.getEl(), {msg: 'Saving captions..'});
     this.grid.mask.show();
     var records = [];
     this.grid.getStore().each(function(record) {
       records[records.length] = {
-        from: record.get("from").format('h:i:s:u'),
-        to: record.get("to").format('h:i:s:u'),
-        text: record.get("text")
+        from: record.get('from').format('h:i:s:u'),
+        to: record.get('to').format('h:i:s:u'),
+        text: record.get('text')
       };
       return true;
     });
@@ -65,7 +69,7 @@ Ext.apply(Sube.Sub.prototype,
         url : Sube.path_to('/preview/'+this.id),
         scope: this,
         success : function(response) {
-          Ext.decode("function() { "+response.responseText+" }")();
+          Ext.decode('function() { '+response.responseText+' }')();
           if (typeof callback == 'function') { this.whenPlayerReady(callback); }
           this.loadPlayer();
         },
@@ -77,15 +81,15 @@ Ext.apply(Sube.Sub.prototype,
   },
 
   saveGist: function() {
-    this.grid.mask = new Ext.LoadMask(this.grid.getEl(), {msg: "Saving captions.."});
+    this.grid.mask = new Ext.LoadMask(this.grid.getEl(), {msg: 'Saving captions..'});
     this.grid.mask.show();
     var el = Ext.getBody().createChild({tag: 'div'});
     var records = [];
     this.grid.getStore().each(function(record) {
       records[records.length] = {
-        from: record.get("from").format('H:m:i:s:u'),
-        to: record.get("to").format('H:m:i:s:u'),
-        text: record.get("text")
+        from: record.get('from').format('H:m:i:s:u'),
+        to: record.get('to').format('H:m:i:s:u'),
+        text: record.get('text')
       };
       return true;
     });
@@ -109,23 +113,24 @@ Ext.apply(Sube.Sub.prototype,
     var width = this.win.width - 20;
     var height = 250;
 
-    Sube.log("Loading player for video: "+this.videoURI);
+    Sube.log('Loading player for video: '+this.videoURI);
 
     var player = new SWFObject(Sube.path_to('/jwplayer/player.swf'),embed_id,width,height,'9');
-    player.addParam("wmode","transparent");
-    player.addParam("allowfullscreen","true");
-    player.addParam("allowscriptaccess", "always");
-    player.addVariable('tracecall', 'jwPlayerTrace'); // show jwplayer events
+    player.addParam('wmode','transparent');
+    player.addParam('allowfullscreen','true');
+    player.addParam('allowscriptaccess', 'always');
+    player.addParam('id', embed_id);
+    //player.addVariable('tracecall', 'Sube.Sub.forPlayer("'+embed_id+'").jwPlayerTrace'); // slowww
     player.addVariable('fullscreen','true');
-    player.addVariable("autostart","false");
-    player.addVariable("usecaptions","true");
-    player.addVariable("channel", "0");
-    player.addVariable("width", width);
-    player.addVariable("height",height);
-    player.addVariable("javascriptid", embed_id);
-    player.addVariable("id", embed_id);
-    player.addVariable("file", Ext.util.Format.htmlEncode(this.videoURI));
-    player.addVariable("captions", Ext.util.Format.htmlEncode(this.captionsURI));
+    player.addVariable('autostart','false');
+    player.addVariable('usecaptions','true');
+    player.addVariable('channel', '0');
+    player.addVariable('width', width);
+    player.addVariable('height',height);
+    player.addVariable('javascriptid', embed_id);
+    player.addVariable('id', embed_id);
+    player.addVariable('file', Ext.util.Format.htmlEncode(this.videoURI));
+    player.addVariable('captions', Ext.util.Format.htmlEncode(this.captionsURI));
 
     player.write(this.video.body.id);
 
@@ -141,31 +146,38 @@ Ext.apply(Sube.Sub.prototype,
 
   play: function(pause) {
     if (this.player) {
-      Sube.log("SEND PLAY");
+      Sube.log('SEND PLAY');
       this.player.sendEvent('PLAY', pause || 'true');
     }
   },
 
-  whenPlayerReady: function(callback) {
-    this.callbacks.playerReady = this.callbacks.jwPlayerReady.createSequence(callback, this);
+  whenPlayerReady: function(callback, args) {
+    this.jwPlayerReady = this.jwPlayerReady.createSequence(callback, this, args);
   },
 
-  callbacks : {
+  jwPlayerTrace: function(obj) {
+    Sube.log('Player '+this.id+': '+obj);
+  },
 
-    jwPlayerReady : function(player, obj) {
-      if (typeof player.getConfig == 'function') {
-        this.player = player;
-        this.player.addViewListener("play", "jwPlayerPlay");
-      } else {
-        this.player = undefined; // no player
-      }
-      this.callbacks.playerReady = this.callbacks.jwPlayerReady;
-    },
-
-    jwPlayerPlay : function(player, obj) {
-      Sube.log("JWPlayer playing "+Ext.encode(obj));
+  jwPlayerReady: function(obj) {
+    var player = document.getElementById(obj.id);
+    if (typeof player.getConfig == 'function') {
+      this.player = player;
+      var sub = 'Sube.Sub.forPlayer("'+obj.id+'").';
+      this.player.addViewListener('PLAY', sub+'jwPlayerPlaying');
+      Sube.log('Configured player: '+Ext.encode(player.getConfig()));
+    } else {
+      this.player = undefined; // no player
+      Sube.log('Removed player: '+obj.id);
     }
+    this.jwPlayerReady = this.jwPlayerSetup;
+  },
 
+  jwPlayerSetup : this.jwPlayerReady,
+
+  jwPlayerPlaying : function(obj) {
+    Sube.log('Playing '+this.videoURI+' => '+Ext.encode(obj));
+    this.player.playing = !!!this.player.playing;
   },
 
   moveToCaption: function(position) {
@@ -352,7 +364,7 @@ Ext.apply(Sube.Sub.prototype,
 
       // Add Caption keys
       {
-        key: "j\n\r", // new caption after current
+        key: 'j\n\r', // new caption after current
         alt: true,
         ctrl: true,
         fn: this.newCaption.createDelegate(this, ['next']),
@@ -383,7 +395,7 @@ Ext.apply(Sube.Sub.prototype,
 
       // Move Caption keys
       {
-        key: "j", // move caption down
+        key: 'j', // move caption down
         shift: true,
         ctrl: true,
         fn: this.moveCaption.createDelegate(this, ['next']),
@@ -414,7 +426,7 @@ Ext.apply(Sube.Sub.prototype,
 
       // Movement keys
       {
-        key: "j\r\n", // move to next caption
+        key: 'j\r\n', // move to next caption
         ctrl: true,
         fn: this.moveToCaption.createDelegate(this, ['next']),
         stopEvent: true
