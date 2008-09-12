@@ -12,7 +12,6 @@ Ext.apply(Sube.Sub.prototype,
 
   setVideo: function(callback) {
 //    this.videoURI = 'http://content.bitsontherun.com/videos/3ta6fhJQ.flv'; // sample video
-//    this.captionsURI = ''; // sample subtitle
 //    return callback(this.videoURI); // for using sample video
 
     Ext.Msg.prompt('Video', 'Please enter the URI to the video file:', function(btn, uri){
@@ -42,16 +41,51 @@ Ext.apply(Sube.Sub.prototype,
       this.setVideo(this.preview.createDelegate(this));
       return;
     }
-    this.savePreview(function() { this.playPause(true).defer(100); });
+    this.savePreview(this.loadPlayer.createDelegate(this), function() { this.playPause(true).defer(100); });
   },
 
   playPause: function(play) {
-    if (this.player) {
+    if (this.videoURI == null) {
+      this.setVideo(this.playPause.createDelegate(this, [play]));
+      return;
+    }
+    if (this.hasPlayer()) {
       this.player.sendEvent('PLAY', (play || !!!this.player.playing));
     }
   },
 
-  savePreview: function(callback) {
+  playSection : function(from, to) {
+    if (this.videoURI == null) {
+      this.setVideo(this.playSection.createDelegate(this, [from, to]));
+      return;
+    }
+    var sm = this.grid.getSelectionModel();
+    var selected = sm.getSelected();
+    var fromSec = selected.get('from').getSeconds() +
+                    (selected.get('from').getMinutes() * 60) +
+                      (selected.get('from').getHours() * 60 * 60);
+    var toSec = selected.get('to').getSeconds() +
+                  (selected.get('to').getMinutes() * 60) +
+                    (selected.get('to').getHours() * 60 * 60);
+    if (toSec > fromSec) {
+      this.grid.stopEditing();
+      var diff = toSec - fromSec;
+      var hasPlayer = this.hasPlayer();
+      var seek = function() {
+        var player = this.player;
+        player.sendEvent('PLAY', 'false');
+        player.sendEvent('SEEK', fromSec);
+        setTimeout(function() {
+          player.sendEvent('SEEK', fromSec);
+          player.sendEvent('PLAY', 'false');
+        }, diff * 1000);
+      }.createDelegate(this);
+      this.savePreview(hasPlayer ? seek : this.loadPlayer.createDelegate(this),
+                       hasPlayer ? undefined : seek);
+    }
+  },
+
+  savePreview: function(callback, whenReady) {
     this.grid.mask = new Ext.LoadMask(this.grid.getEl(), {msg: 'Saving captions..'});
     this.grid.mask.show();
     var records = [];
@@ -69,9 +103,10 @@ Ext.apply(Sube.Sub.prototype,
         url : Sube.path_to('/preview/'+this.id),
         scope: this,
         success : function(response) {
-          Ext.decode('function() { '+response.responseText+' }')();
-          if (typeof callback == 'function') { this.whenPlayerReady(callback); }
-          this.loadPlayer();
+          if (typeof whenReady == 'function') { this.whenPlayerReady(whenReady); }
+          var result = Ext.decode('function() { '+response.responseText+' }')();
+          if (typeof callback == 'function') { callback(result); }
+          this.grid.mask.hide();
         },
         params: {
           videoURI: this.videoURI,
@@ -107,8 +142,6 @@ Ext.apply(Sube.Sub.prototype,
   },
 
   loadPlayer: function() {
-    this.grid.mask.hide();
-
     var embed_id = this.id + '_player';
     var width = this.win.width - 20;
     var height = 250;
@@ -125,6 +158,7 @@ Ext.apply(Sube.Sub.prototype,
     player.addVariable('autostart','false');
     player.addVariable('usecaptions','true');
     player.addVariable('channel', '0');
+    //player.addVariable('start', '50');
     player.addVariable('width', width);
     player.addVariable('height',height);
     player.addVariable('javascriptid', embed_id);
@@ -144,22 +178,19 @@ Ext.apply(Sube.Sub.prototype,
     this.win.render();
   },
 
-  play: function(pause) {
-    if (this.player) {
-      Sube.log('SEND PLAY');
-      this.player.sendEvent('PLAY', pause || 'true');
-    }
+  hasPlayer : function() {
+    return this.player && typeof this.player.sendEvent == 'function';
   },
 
   whenPlayerReady: function(callback, args) {
-    this.jwPlayerReady = this.jwPlayerReady.createSequence(callback, this, args);
+    this.jwPlayerReady = this.jwPlayerSetup.createSequence(callback, this, args);
   },
 
   jwPlayerTrace: function(obj) {
     Sube.log('Player '+this.id+': '+obj);
   },
 
-  jwPlayerReady: function(obj) {
+  jwPlayerSetup: function(obj) {
     var player = document.getElementById(obj.id);
     if (typeof player.getConfig == 'function') {
       this.player = player;
@@ -170,10 +201,10 @@ Ext.apply(Sube.Sub.prototype,
       this.player = undefined; // no player
       Sube.log('Removed player: '+obj.id);
     }
-    this.jwPlayerReady = this.jwPlayerSetup;
+    this.jwPlayerReady = this.jwPlayerSetup.createDelegate(this);
   },
 
-  jwPlayerSetup : this.jwPlayerReady,
+  jwPlayerReady : function(obj) {},
 
   jwPlayerPlaying : function(obj) {
     Sube.log('Playing '+this.videoURI+' => '+Ext.encode(obj));
@@ -456,7 +487,14 @@ Ext.apply(Sube.Sub.prototype,
         ctrl: true,
         fn: this.playPause.createDelegate(this, []),
         stopEvent: true
+      },
+      {
+        key: 'p',
+        alt: true,
+        fn: this.playSection.createDelegate(this, ['current', 'current']),
+        stopEvent: true
       }
+
 
     ];
     new Ext.KeyMap(el, keys);
