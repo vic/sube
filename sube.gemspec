@@ -51,7 +51,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'haml'
   spec.add_dependency 'RedCloth'
   spec.add_dependency 'hpricot'
-
+  spec.add_dependency 'mechanize'
   spec.add_dependency 'akitaonrails-mygist', :gem_repo => 'http://gems.github.com',
                                              :git_uri => 'git://github.com/akitaonrails/mygist.git'
 
