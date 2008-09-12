@@ -68,7 +68,7 @@ module Sube::Rake::Setup
         end
       end
     rescue LoadError
-      'unzip #{file} -d #{path}'
+      sh "unzip #{file} -d #{path}"
     end
   end
 
